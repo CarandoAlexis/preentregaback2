@@ -1,61 +1,61 @@
-import { Router } from "express"; 
-import ProductManager from "../preentrega.js";
+import { Router } from "express";
+import Product from "../dao/models/products.model.js"
 
 const router = Router();
 
-const productManager = new ProductManager('products.json');
+router.get("/", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const sort = req.query.sort === "desc" ? -1 : 1;
+    const query = req.query.query || "";
 
-router.get('/', (req, res) => {
-    const { limit } = req.query;
-    let products = productManager.getProducts();
-    
-    if (limit) {
-      const limitNum = parseInt(limit);
-      products = products.slice(0, limitNum);
+    // Construir el objeto de filtro
+    const filter = {};
+    if (query) {
+      filter.$or = [
+        { category: { $regex: query, $options: "i" } },
+        { availability: { $regex: query, $options: "i" } },
+      ];
     }
-    
+
+   
+    // Obtener los productos según los parámetros de la consulta
+    const products = await Product.find(filter)
+      .sort({ price: sort })
+      .limit(limit)
+      .lean();
+
+    // Resto de la lógica para enviar los datos al cliente, renderizar una vista, etc.
+
     res.json(products);
-  });
-
-router.get('/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    const product = productManager.getProductById(id);
-    if (product) {
-      res.json(product);
-    } else {
-      res.status(404).json({ error: 'Producto no encontrado' });
-    }
-}); 
-
-router.post('/', (req, res) => {
-  try {
-    const { title, description, price, thumbnail, code, stock } = req.body;
-    productManager.addProduct(title, description, price, thumbnail, code, stock);
-    res.status(201).json({ message: 'Producto creado exitosamente' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Error al obtener los productos:", error);
+    res.status(500).json({ status: "error", message: "Error al obtener los productos" });
   }
 });
 
-router.put('/:id', (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    const updatedFields = req.body;
-    productManager.updateProduct(id, updatedFields);
-    res.json({ message: 'Producto actualizado exitosamente' });
+    // Obtén los datos del producto desde el cuerpo de la solicitud
+    const { title, description, price, code, category } = req.body;
+
+    // Crea un nuevo documento de producto utilizando el modelo Product
+    const newProduct = new Product({
+      title,
+      description,
+      price,
+      code,
+      category,
+    });
+
+    // Guarda el nuevo producto en la base de datos
+    await newProduct.save();
+
+    res.status(201).json({ status: "success", message: "Producto agregado exitosamente" });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Error al agregar el producto:", error);
+    res.status(500).json({ status: "error", message: "Error al agregar el producto" });
   }
 });
 
-router.delete('/:id', (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    productManager.deleteProduct(id);
-    res.json({ message: 'Producto eliminado exitosamente' });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-  
 export default router;

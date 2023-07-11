@@ -15,11 +15,11 @@ class ProductManager {
 
   saveProducts() {
     const data = JSON.stringify(this.products, null, 2);
-    fs.writeFileSync(this.path, data);
+    fs.writeFileSync(this.path, data);fsproductmanager
   }
 
-  addProduct(title, description, price, thumbnail, code, stock) {
-    if (!title || !description || !price || !thumbnail || !code || !stock) {
+  addProduct(title, description, price, thumbnail, code, categoria ) {
+    if (!title || !description || !price || !thumbnail || !code || !categoria) {
       throw new Error('Todos los campos son obligatorios');
     }
 
@@ -34,10 +34,12 @@ class ProductManager {
       price,
       thumbnail,
       code,
-      stock,
+      categoria,
     };
     this.products.push(product);
     this.saveProducts();
+    
+    
   }
 
   getProducts() {
@@ -72,9 +74,10 @@ class ProductManager {
       ...updatedFields,
       id: product.id,
     };
-
+  
     this.products.splice(productIndex, 1, updatedProduct);
     this.saveProducts();
+  
   }
 
   deleteProduct(id) {
